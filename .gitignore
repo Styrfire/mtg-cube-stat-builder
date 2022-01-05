@@ -1,0 +1,9 @@
+build/
+out/
+.gradle/
+.idea/
+*.iml
+
+#ignore google credentials file and tokens
+/src/main/resources/client_secret.json
+/tokens/

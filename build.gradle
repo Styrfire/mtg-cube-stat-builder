@@ -1,0 +1,32 @@
+apply plugin: 'groovy'
+
+ext {
+    date = new Date().format("yyMMdd.HHmm")
+    springBootVersion = '2.5.4'
+}
+
+group 'org.example'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.google.api-client:google-api-client:1.32.2'
+    implementation 'com.google.apis:google-api-services-sheets:v4-rev20210629-1.32.1'
+    implementation 'com.google.oauth-client:google-oauth-client-jetty:1.32.1'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.13.1'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.13.1'
+    implementation 'org.codehaus.groovy:groovy-all:3.0.8'
+    implementation "org.springframework.boot:spring-boot-starter:${springBootVersion}"
+    implementation 'javax.inject:javax.inject:1'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
+}
+
+wrapper {
+    description = "Generates gradlew[.bat] scripts"
+    gradleVersion = '5.4.1'
+    distributionType = Wrapper.DistributionType.ALL
+}
