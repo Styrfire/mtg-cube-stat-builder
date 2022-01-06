@@ -4,7 +4,15 @@ import com.cubeStatBuilder.utils.CardType
 
 class Card
 {
-	String name
+	String cardName
 	int cmc
 	CardType cardType
+
+	@Override
+	String toString()
+	{
+		return "cardName = " + cardName +
+				"\ncmc = " + cmc +
+				"\ncardType = " + cardType
+	}
 }
