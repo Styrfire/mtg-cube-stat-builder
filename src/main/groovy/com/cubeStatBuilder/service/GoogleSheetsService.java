@@ -1,8 +1,11 @@
 package com.cubeStatBuilder.service;
 
 import com.cubeStatBuilder.dto.Card;
+import com.cubeStatBuilder.dto.CubeStats;
 import com.cubeStatBuilder.dto.ThemeData;
 import com.cubeStatBuilder.utils.CardType;
+import com.cubeStatBuilder.utils.Color;
+import com.cubeStatBuilder.utils.Utils;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
@@ -22,7 +25,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.security.GeneralSecurityException;
-import java.text.ParseException;
 import java.util.*;
 
 public class GoogleSheetsService
@@ -69,6 +71,7 @@ public class GoogleSheetsService
 	public ThemeData getThemeDataFromSheet(String spreadsheetId, String sheetName) throws IOException, NumberFormatException
 	{
 		ThemeData themeData = new ThemeData();
+		themeData.setName(sheetName);
 		themeData.setCards(new ArrayList<>());
 
 		// get grid data
@@ -87,21 +90,58 @@ public class GoogleSheetsService
 
 		List<GridData> gridData = spreadsheetWithGrid.getSheets().get(themeSheet.getProperties().getIndex()).getData();
 
+		// for each row starting with the second
 		for (int i = 1; i < gridData.get(0).getRowData().size(); i++)
 		{
 			RowData rowData = gridData.get(0).getRowData().get(i);
 
+			// check if the card name is empty
 			if (rowData.getValues().get(0).getEffectiveValue() == null)
 			{
 				System.out.println("Card not found! Must be at the end of the list!");
 				break;
 			}
+			// check if it is picked for the cube
+			else if (rowData.getValues().size() < 7 || rowData.getValues().get(6).getEffectiveValue().getNumberValue().intValue() != 1)
+			{
+				System.out.println(rowData.getValues().get(0).getEffectiveValue().getStringValue() +
+						" was not selected to be in the cube!");
+			}
 			else
 			{
+				// add card to theme
 				Card card = new Card();
 				card.setCardName(rowData.getValues().get(0).getEffectiveValue().getStringValue());
 				card.setCmc(rowData.getValues().get(1).getEffectiveValue().getNumberValue().intValue());
-				//card.setColor(rowData.getValues().get(1).getEffectiveValue().getStringValue());
+				// do a bunch of color stuff...
+				String colorCombo = rowData.getValues().get(2).getEffectiveValue().getStringValue();
+				List <Color> colors = new ArrayList<>();
+				for (char color : colorCombo.toCharArray())
+				{
+					switch (color)
+					{
+						case 'W':
+							colors.add(Color.White);
+							break;
+						case 'U':
+							colors.add(Color.Blue);
+							break;
+						case 'B':
+							colors.add(Color.Black);
+							break;
+						case 'R':
+							colors.add(Color.Red);
+							break;
+						case 'G':
+							colors.add(Color.Green);
+							break;
+						case 'C':
+							colors.add(Color.Colorless);
+							break;
+					}
+
+				}
+				card.setColors(colors);
 				card.setCardType(CardType.valueOf(rowData.getValues().get(3).getEffectiveValue().getStringValue()));
 
 				themeData.getCards().add(card);
@@ -109,7 +149,38 @@ public class GoogleSheetsService
 			}
 		}
 
-		return null;
+		themeData.setNumOfCards(themeData.getCards().size());
+		themeData.setColorTypeAmountMatrix(Utils.getColorTypeAmountMatrixFromCardList(themeData.getCards()));
+
+		System.out.println(themeData.getName() + " had " + themeData.getNumOfCards() + " cards in it!");
+
+		return themeData;
+	}
+
+	public boolean sendCubeStatsToSpreadsheet(CubeStats cubeStats, String spreadsheetId, String sheetName) throws IOException
+	{
+		// set cell values with matrix
+		List<List<Object>> cellValues = new ArrayList<>();
+		for (int i = 0; i < 7; i++)
+		{
+			List<Object> rowValues = new ArrayList<>();
+			for (int j = 0; j < 8; j++)
+				rowValues.add(cubeStats.getColorTypeAmountMatrix()[i][j]);
+
+			cellValues.add(rowValues);
+		}
+
+		// get spreadsheet
+		Spreadsheet spreadsheet = sheetsService.spreadsheets().get(spreadsheetId).execute();
+
+		// shove the data in the spreadsheet at the appropriate column
+		ValueRange valueRange = new ValueRange();
+		valueRange.setValues(cellValues);
+		Sheets.Spreadsheets.Values.Update request = sheetsService.spreadsheets().values()
+				.update(spreadsheet.getSpreadsheetId(), "'" + sheetName + "'!B6:I12", valueRange);
+		request.setValueInputOption("RAW").execute();
+
+		return true;
 	}
 
 	private Sheet findSheetByTitle(List<Sheet> sheets, String sheetTitle)

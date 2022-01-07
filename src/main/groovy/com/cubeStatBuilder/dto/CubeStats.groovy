@@ -1,10 +1,8 @@
 package com.cubeStatBuilder.dto
 
-class ThemeData
+class CubeStats
 {
-	String name
-	List<Card> cards
-	int numOfCards
+	List<ThemeData> themeData;
 	/*
 	ok, this one's a duzy because I'm lazy and don't want to find a better way to do this...
 					white        blue         black        red          green        multicolored lands        colorless
@@ -17,4 +15,17 @@ class ThemeData
 	lands			[6][0]       [6][1]       [6][2]       [6][3]       [6][4]       [6][5]       [6][6]       [6][7]
 	*/
 	int[][] colorTypeAmountMatrix
+
+	CubeStats()
+	{
+		colorTypeAmountMatrix = [
+			[0, 0, 0, 0, 0, 0, 0, 0],
+			[0, 0, 0, 0, 0, 0, 0, 0],
+			[0, 0, 0, 0, 0, 0, 0, 0],
+			[0, 0, 0, 0, 0, 0, 0, 0],
+			[0, 0, 0, 0, 0, 0, 0, 0],
+			[0, 0, 0, 0, 0, 0, 0, 0],
+			[0, 0, 0, 0, 0, 0, 0, 0]
+		]
+	}
 }

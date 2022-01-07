@@ -7,5 +7,6 @@ public enum Color
 	Black,
 	Red,
 	Green,
+	Land,
 	Colorless
 }
