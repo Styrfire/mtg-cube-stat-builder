@@ -101,8 +101,8 @@ public class GoogleSheetsService
 				System.out.println("Card not found! Must be at the end of the list!");
 				break;
 			}
-			// check if it is picked for the cube
-			else if (rowData.getValues().size() < 7 || rowData.getValues().get(6).getEffectiveValue().getNumberValue().intValue() != 1)
+			// if row data size < 7, index 6 is empty, or number value isn't 1 aka, not picked for cube
+			else if (rowData.getValues().size() < 7 || rowData.getValues().get(6).size() == 0 || rowData.getValues().get(6).getEffectiveValue().getNumberValue().intValue() != 1)
 			{
 				System.out.println(rowData.getValues().get(0).getEffectiveValue().getStringValue() +
 						" was not selected to be in the cube!");
@@ -155,6 +155,32 @@ public class GoogleSheetsService
 		System.out.println(themeData.getName() + " had " + themeData.getNumOfCards() + " cards in it!");
 
 		return themeData;
+	}
+
+	public boolean sendThemeStatsToSpreadsheet(int[][] colorTypeAmountMatrix, String spreadsheetId, String sheetName) throws IOException
+	{
+		// set cell values with matrix
+		List<List<Object>> cellValues = new ArrayList<>();
+		for (int i = 0; i < 7; i++)
+		{
+			List<Object> rowValues = new ArrayList<>();
+			for (int j = 0; j < 8; j++)
+				rowValues.add(colorTypeAmountMatrix[i][j]);
+
+			cellValues.add(rowValues);
+		}
+
+		// get spreadsheet
+		Spreadsheet spreadsheet = sheetsService.spreadsheets().get(spreadsheetId).execute();
+
+		// shove the data in the spreadsheet at the appropriate column
+		ValueRange valueRange = new ValueRange();
+		valueRange.setValues(cellValues);
+		Sheets.Spreadsheets.Values.Update request = sheetsService.spreadsheets().values()
+				.update(spreadsheet.getSpreadsheetId(), "'" + sheetName + "'!J2:Q8", valueRange);
+		request.setValueInputOption("RAW").execute();
+
+		return true;
 	}
 
 	public boolean sendCubeStatsToSpreadsheet(CubeStats cubeStats, String spreadsheetId, String sheetName) throws IOException
