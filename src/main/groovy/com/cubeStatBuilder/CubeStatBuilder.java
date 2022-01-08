@@ -39,11 +39,15 @@ public class CubeStatBuilder
 			// git list of sheet theme names
 			String[] themeArray = themeArrayString.split(",");
 
-			// for each theme, get its data
+			// for each theme, get its data, and update the theme's sheet.
 			List<ThemeData> themeDataList = new ArrayList<>();
 			for (String theme : themeArray)
 			{
 				ThemeData themeData = googleSheetsService.getThemeDataFromSheet(spreadsheetId, theme);
+				if (googleSheetsService.sendThemeStatsToSpreadsheet(themeData.getColorTypeAmountMatrix(), spreadsheetId, themeData.getName()))
+					System.out.println(themeData.getName() + " stats were sent to the spreadsheet!");
+				else
+					System.out.println("Something went wrong and " +  themeData.getName() + " stats were NOT sent to the spreadsheet!");
 				themeDataList.add(themeData);
 			}
 
