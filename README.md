@@ -1,4 +1,4 @@
-Download the OAuth 2.0 Client ID json from Google Cloud Platform, rename it to ```client_secret.json``` and put it under ```src/main/resources/```
+Download the OAuth 2.0 Client ID json from Google Cloud Platform (under APIs and Services -> Credentials), rename it to ```client_secret.json``` and put it under ```src/main/resources/```
 
 If running for the first time, a browser will open to authenticate the OAuth 2 client and put the credentials in the ```tokens/``` folder.<br>
 
