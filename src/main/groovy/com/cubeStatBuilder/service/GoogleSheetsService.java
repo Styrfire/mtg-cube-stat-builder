@@ -38,7 +38,7 @@ public class GoogleSheetsService
 		jsonFactory = GsonFactory.getDefaultInstance();
 
 		sheetsService = new Sheets.Builder(httpTransport, jsonFactory, getCredentials(httpTransport))
-				.setApplicationName("iRacing Stint Analyzer")
+				.setApplicationName("MTG Cube Stat Builder")
 				.build();
 	}
 
@@ -118,26 +118,13 @@ public class GoogleSheetsService
 				List <Color> colors = new ArrayList<>();
 				for (char color : colorCombo.toCharArray())
 				{
-					switch (color)
-					{
-						case 'W':
-							colors.add(Color.White);
-							break;
-						case 'U':
-							colors.add(Color.Blue);
-							break;
-						case 'B':
-							colors.add(Color.Black);
-							break;
-						case 'R':
-							colors.add(Color.Red);
-							break;
-						case 'G':
-							colors.add(Color.Green);
-							break;
-						case 'C':
-							colors.add(Color.Colorless);
-							break;
+					switch (color) {
+						case 'W' -> colors.add(Color.White);
+						case 'U' -> colors.add(Color.Blue);
+						case 'B' -> colors.add(Color.Black);
+						case 'R' -> colors.add(Color.Red);
+						case 'G' -> colors.add(Color.Green);
+						case 'C' -> colors.add(Color.Colorless);
 					}
 
 				}
