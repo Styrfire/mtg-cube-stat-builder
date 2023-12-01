@@ -101,8 +101,15 @@ public class GoogleSheetsService
 				System.out.println("Card not found! Must be at the end of the list!");
 				break;
 			}
-			// if row data size < 7, index 6 is empty, or number value isn't 1 aka, not picked for cube
-			else if (rowData.getValues().size() < 7 || rowData.getValues().get(6).size() == 0 || rowData.getValues().get(6).getEffectiveValue().getNumberValue().intValue() != 1)
+			// if row data size < 7
+			//		there aren't cells with content up to the current pick
+			//		this shouldn't happen because there is conditional formatting that will show up for all the cells
+			//		but it occurred before conditional formatting was added
+			// index 6 is <=1
+			//		if it's empty or only has one piece of content, which it should because conditional formatting will
+			//		add to the size
+			// number value isn't 1 aka, not picked for cube
+			else if (rowData.getValues().size() < 7 || rowData.getValues().get(6).size() <= 1 || rowData.getValues().get(6).getEffectiveValue().getNumberValue().intValue() != 1)
 			{
 				System.out.println(rowData.getValues().get(0).getEffectiveValue().getStringValue() +
 						" was not selected to be in the cube!");
@@ -203,5 +210,142 @@ public class GoogleSheetsService
 				return sheet;
 
 		return null;
+	}
+
+	public boolean addConditionalFormatForSpreadsheet(String spreadsheetId, String sheetName) throws IOException
+	{
+		// get grid data
+		Spreadsheet spreadsheetWithGrid = sheetsService.spreadsheets().get(spreadsheetId)
+				.setIncludeGridData(true).execute();
+		List<Sheet> sheets = spreadsheetWithGrid.getSheets();
+
+		Sheet themeSheet = findSheetByTitle(sheets, sheetName);
+		if (themeSheet != null)
+			System.out.println("Found existing theme sheet!");
+		else
+		{
+			System.out.println("Didn't find an existing theme sheet!");
+			return false;
+		}
+
+		// add new formatting rules
+		java.util.List<Request> requests = new ArrayList<>();
+
+		for (int i = 0; i < 300; i++) {
+			List<GridRange> ranges = Collections.singletonList(new GridRange()
+					.setSheetId(themeSheet.getProperties().getSheetId())
+					.setStartColumnIndex(0)
+					.setEndColumnIndex(7)
+					.setStartRowIndex(i + 1)
+					.setEndRowIndex(i + 2)
+			);
+
+			requests.add(buildConditionalFormatRuleRequest(ranges,
+					"=AND($E" + (i + 2) + "=\"low\",$G" + (i + 2) + "=1)",
+					"red"));
+			requests.add(buildConditionalFormatRuleRequest(ranges,
+					"=AND($E" + (i + 2) + "=\"high\",$G" + (i + 2) + "=0)",
+					"red"));
+			requests.add(buildConditionalFormatRuleRequest(ranges,
+					"=AND($E" + (i + 2) + "=\"medium\",$G" + (i + 2) + "=0)",
+					"yellow"));
+			requests.add(buildConditionalFormatRuleRequest(ranges,
+					"=AND($E" + (i + 2) + "=\"medium\",$G" + (i + 2) + "=1)",
+					"green"));
+			requests.add(buildConditionalFormatRuleRequest(ranges,
+					"=AND($E" + (i + 2) + "=\"low\",$G" + (i + 2) + "=0)",
+					"green"));
+			requests.add(buildConditionalFormatRuleRequest(ranges,
+					"=AND($E" + (i + 2) + "=\"high\",$G" + (i + 2) + "=1)",
+					"green"));
+
+		}
+
+		BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
+		batchUpdateSpreadsheetRequest.setRequests(requests);
+
+		sheetsService.spreadsheets().batchUpdate(spreadsheetId, batchUpdateSpreadsheetRequest).execute();
+		return true;
+	}
+
+	public boolean deleteConditionalFormatForSpreadsheet(String spreadsheetId, String sheetName) throws IOException
+	{
+		// get grid data
+		Spreadsheet spreadsheetWithGrid = sheetsService.spreadsheets().get(spreadsheetId)
+				.setIncludeGridData(true).execute();
+		List<Sheet> sheets = spreadsheetWithGrid.getSheets();
+
+		Sheet themeSheet = findSheetByTitle(sheets, sheetName);
+		if (themeSheet != null)
+			System.out.println("Found existing theme sheet!");
+		else
+		{
+			System.out.println("Didn't find an existing theme sheet!");
+			return false;
+		}
+
+		java.util.List<Request> deleteRequests = new ArrayList<>();
+
+		// delete previous formatting rules (have to loop through each one on the spreadsheet :( )
+		// if you try to delete more rules than exist on the spreadsheet, the whole batch will fail,
+		// and the deleted rules will be reverted
+		for (int i = 0; i < 1800; i++)
+		{
+			deleteRequests.add(buildDeleteConditionalFormatRuleRequest(themeSheet.getProperties().getSheetId()));
+		}
+
+		BatchUpdateSpreadsheetRequest batchDeleteUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
+		batchDeleteUpdateSpreadsheetRequest.setRequests(deleteRequests);
+
+		sheetsService.spreadsheets().batchUpdate(spreadsheetId, batchDeleteUpdateSpreadsheetRequest).execute();
+		return true;
+	}
+
+	private ColorStyle setColorStyle(String color)
+	{
+		return switch (color) {
+			case "green" -> new ColorStyle().setRgbColor(new com.google.api.services.sheets.v4.model.Color()
+					.setRed(0.7176470588235294f)
+					.setGreen(0.8823529411764706f)
+					.setBlue(0.803921568627451f)
+			);
+			case "yellow" -> new ColorStyle().setRgbColor(new com.google.api.services.sheets.v4.model.Color()
+					.setRed(0.9882352941176471f)
+					.setGreen(0.9098039215686274f)
+					.setBlue(0.6980392156862745f)
+			);
+			case "red" -> new ColorStyle().setRgbColor(new com.google.api.services.sheets.v4.model.Color()
+					.setRed(0.9568627450980393f)
+					.setGreen(0.7803921568627451f)
+					.setBlue(0.7647058823529411f)
+			);
+			default -> null;
+		};
+	}
+
+	private Request buildConditionalFormatRuleRequest(List<GridRange> ranges, String customFormulaValue, String colorStyle){
+		return new Request().setAddConditionalFormatRule(new AddConditionalFormatRuleRequest()
+				.setRule(new ConditionalFormatRule()
+						.setRanges(ranges)
+						.setBooleanRule(new BooleanRule()
+								.setCondition(new BooleanCondition()
+										.setType("CUSTOM_FORMULA")
+										.setValues(Collections.singletonList(
+												new ConditionValue().setUserEnteredValue(
+														customFormulaValue)
+										))
+								)
+								.setFormat(new CellFormat().setBackgroundColorStyle(setColorStyle(colorStyle)))
+						)
+				)
+				.setIndex(0)
+		);
+	}
+
+	private Request buildDeleteConditionalFormatRuleRequest(int sheetId){
+		return new Request().setDeleteConditionalFormatRule(new DeleteConditionalFormatRuleRequest()
+				.setSheetId(sheetId)
+				.setIndex(0)
+		);
 	}
 }
